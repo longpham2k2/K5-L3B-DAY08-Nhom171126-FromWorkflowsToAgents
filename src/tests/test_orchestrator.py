@@ -59,6 +59,7 @@ def test_orchestrator_denies_approval(monkeypatch):
                 after = conn.execute(
                     "SELECT COUNT(*) FROM refund_ledger"
                 ).fetchone()[0]
+                # Kiểm tra tổng số dòng ledger không tăng
                 assert after == before
 
                 denials = conn.execute(
@@ -67,13 +68,16 @@ def test_orchestrator_denies_approval(monkeypatch):
                     ("C-NOAPPROVAL",),
                 ).fetchall()
 
+                # Kiểm tra ghi lý do từ chối là 'missing_approval'
                 assert any(
                     json.loads(row[0])["reason"] == "missing_approval"
                     for row in denials
                 )
 
                 trace_path = Path(result.trace_path).resolve()
-                assert trace_path.parent == Path(directory) / "traces"
+                expected_directory = (Path(directory) / "traces").resolve()
+
+                assert trace_path.parent == expected_directory
 
                 trace = json.loads(
                     trace_path.read_text(encoding="utf-8")
@@ -82,5 +86,9 @@ def test_orchestrator_denies_approval(monkeypatch):
             finally:
                 conn.close()
 
+    # Đảm bảo không thêm vào DB public 
+    # File DB tạm thời đã được xóa
     assert not store.exists()
+
+    # File trace tạm thời đã được xóa
     assert not trace_path.exists()
