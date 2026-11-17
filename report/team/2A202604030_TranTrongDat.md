@@ -8,7 +8,7 @@ Ví dụ: `20241234_NguyenVanAn.md`.
 
 - Họ tên: Trần Trọng Đạt
 - MSSV: 2A202604030
-- Email: 26ai.dattt@
+- Email: 26ai.dattt@vinuni.edu.vn
 - GitHub: dtr-uep
 
 ## 2. Phần việc phụ trách
