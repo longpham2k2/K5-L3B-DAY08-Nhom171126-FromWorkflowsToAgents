@@ -75,7 +75,9 @@ def test_orchestrator_denies_approval(monkeypatch):
                 )
 
                 trace_path = Path(result.trace_path).resolve()
-                assert trace_path.parent == Path(directory) / "traces"
+                expected_directory = (Path(directory) / "traces").resolve()
+
+                assert trace_path.parent == expected_directory
 
                 trace = json.loads(
                     trace_path.read_text(encoding="utf-8")
