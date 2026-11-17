@@ -17,11 +17,11 @@ Shape B `single` (một agent ReAct): file `src/lab8/shapes/single.py`, gồm c�
 
 **Cấu trúc shape `single`:**
 
-| Phần | Việc làm |
-| --- | --- |
-| Trước vòng lặp | Đọc claim bằng read tool `get_claim_view` (không đọc SQL trực tiếp nên không chạm `parent_secret`). Claim không tồn tại → `failed` / `unknown_claim`. Thiếu `order_id` → `needs_info`, không đoán mã đơn từ ticket |
-| Vòng lặp | `runtime.run_react` với `max_steps=8`. `decide()` chọn lần lượt `lookup_order` → `lookup_refund_history` → `lookup_policy` → `compute_compensation`, rồi trả `final`. Không thấy đơn hoặc không sở hữu → dừng sớm, `escalated` |
-| Sau vòng lặp | Quote = 0 → `denied`, không gọi host. Quote > 0 → `durability.issue_refund(conn, claim_id, quote, crash_at=crash_at)`. Kết quả host → `resolved` / `denied` / `failed` (conflict). `proposal_amount` luôn là quote đầy đủ |
+| Phần           | Việc làm                                                                                                                                                                                                                       |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Trước vòng lặp | Đọc claim bằng read tool `get_claim_view` (không đọc SQL trực tiếp nên không chạm `parent_secret`). Claim không tồn tại → `failed` / `unknown_claim`. Thiếu `order_id` → `needs_info`, không đoán mã đơn từ ticket             |
+| Vòng lặp       | `runtime.run_react` với `max_steps=8`. `decide()` chọn lần lượt `lookup_order` → `lookup_refund_history` → `lookup_policy` → `compute_compensation`, rồi trả `final`. Không thấy đơn hoặc không sở hữu → dừng sớm, `escalated` |
+| Sau vòng lặp   | Quote = 0 → `denied`, không gọi host. Quote > 0 → `durability.issue_refund(conn, claim_id, quote, crash_at=crash_at)`. Kết quả host → `resolved` / `denied` / `failed` (conflict). `proposal_amount` luôn là quote đầy đủ      |
 
 **Quyết định kỹ thuật:**
 
@@ -58,6 +58,15 @@ Shape B `single` (một agent ReAct): file `src/lab8/shapes/single.py`, gồm c�
 
 ## 6. Tự đánh giá
 
-<!-- Tự viết phần này: mức độ hiểu, điều làm tốt, điều còn hạn chế. RULES.md không cho dùng AI viết phần tự đánh giá. -->
+**Đã làm được:**
+
+- Hoàn thành shape `single` (CP2 + CP3), đã merge vào `main` qua PR #2; qua 62/62 test student của shape.
+- Shape không tin số ngày trong ticket: T02 ở seed 55 vẫn `denied`, trong khi swarm tham chiếu trả 20.000.
+- Tự kiểm CP4 cho `single`: crash ở cả 3 điểm trên 14 claim không tạo refund thứ hai; 5 kiểu approval hỏng (thu hồi, hết hạn, số 0, mượn của claim khác, không có) đều bị host chặn kèm `policy_denied`; không lộ secret hay PII trong trace, kết quả và stdout.
+- Thêm test `test_single_ignores_ticket_delay_on_seed_55` vào cổng host; cổng host vẫn xanh sau khi ghép cả ba shape của nhóm (55 passed, ma trận student 248/248).
+
+**Mức độ hiểu và điều còn hạn chế:**
+
+- Mất nhiều thời gian để hiểu yêu cầu bài lab và làm
 
 ...
