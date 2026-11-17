@@ -7,7 +7,7 @@
 ## Tên repo và biến tên
 
 - `Kn`: số khóa. Khóa này dùng `K5`.
-- Level/lớp: `L3A`.
+- Level/lớp: `L3B`.
 
 ### Repo bài nộp nhóm
 

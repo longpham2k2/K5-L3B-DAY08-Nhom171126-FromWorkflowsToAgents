@@ -2,17 +2,18 @@
 
 ## Thông tin nhóm
 
-- Tên nhóm:
-- Lớp: L3A
-- Repo nhóm: `K5-L3A-DAY08-TenNhom-FromWorkflowsToAgents` (xem [SUBMISSION.md](SUBMISSION.md))
-- URL repo, nhánh nộp, commit chốt:
+- Tên nhóm: Nhóm 171126
+- Lớp: L3B
+- Repo nhóm: `K5-L3B-DAY08-Nhom171126-FromWorkflowsToAgents` (xem [SUBMISSION.md](SUBMISSION.md))
+- URL repo, nhánh nộp, commit chốt: 
 
 ## Thành viên
 
 | STT | Họ tên | MSSV | Email | GitHub | Vai trò |
 | --: | ------ | ---- | ----- | ------ | ------- |
-|   1 |        |      |       |        |         |
-|   2 |        |      |       |        |         |
+|   1 | Phạm Ngọc Long | 2A202604111 | 26ai.longpn@vinuni.edu.vn | longpham2k2 | Nhóm trưởng |
+|   2 | Trần Trọng Đạt | 2A202604030 | 26ai.dattt5@vinuni.edu.vn | dtr-uep | Thành viên |
+|   3 | Lê Bá Nguyên | 2A202604100 | 26ai.nguyenlb2@vinuni.edu.vn | lbNGuyen06 | Thành viên |
 
 Gợi ý chia vai:
 
