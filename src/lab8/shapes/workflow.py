@@ -29,9 +29,12 @@ ones. `lab8.trace.Trace` does this; your own tracer is fine if it matches.
 
 from __future__ import annotations
 
-from lab8.schemas import RunResult
-from lab8.shapes.common import not_implemented
-
+from lab8.db import connect
+from lab8.durability import InjectedCrash, issue_refund
+from lab8.schemas import Budget, RunResult, make_run_id
+from lab8.shapes.common import finish
+from lab8.tools import compute_compensation, get_claim_view, lookup_order, tool_cost
+from lab8.trace import Trace
 
 def run_claim(
     claim_id: str,
@@ -40,7 +43,68 @@ def run_claim(
     store_path: str,
     crash_at: str | None = None,
 ) -> RunResult:
-    # TODO CP2 (student): thay stub này bằng shape workflow theo các bước ở docstring đầu file.
-    # TODO CP3 (student): truyền crash_at vào durability.issue_refund, không bắt InjectedCrash.
-    del store_path, crash_at
-    return not_implemented("workflow", claim_id, seed)
+    # CP2 (student): thay stub này bằng shape workflow theo các bước ở docstring đầu file.
+    conn = connect(store_path)
+    try:
+        return _run(conn, claim_id, seed=seed, crash_at=crash_at)
+    finally:
+        conn.close()
+
+def _run(conn, claim_id, *, seed, crash_at):
+    budget = Budget()
+    trace = Trace(make_run_id("workflow", claim_id, seed))
+
+    def done(status, proposal=0, reason=None):
+        return finish(conn, shape="workflow", claim_id=claim_id, seed=seed,
+                      status=status, proposal_amount=proposal,
+                      budget=budget, trace=trace, error_reason=reason)
+
+    # 1. read claim
+    claim = get_claim_view(conn, claim_id)
+    budget.add_tool(tool_cost())
+    if not claim["found"]:
+        trace.add("decision", {"status": "failed", "reason": "unknown_claim"})
+        return done("failed", reason="unknown_claim")
+
+    # 2. missing order_id  -> needs_info
+    if not claim["order_id"]:
+        trace.add("decision", {"status": "needs_info", "reason": "missing_order_id"})
+        return done("needs_info", reason="missing_order_id")
+
+    # 3. lookup_order(conn, claim["order_id"], claim["principal_id"])
+    #    not view["visible"] -> escalated, reason=view["reason"]
+    view = lookup_order(conn, claim["order_id"], claim["principal_id"])
+    budget.add_tool(tool_cost())
+    if not view["visible"]:
+        trace.add("decision", {"status": "escalated", "reason": view["reason"]})
+        return done("escalated", reason=view["reason"])
+
+    # 4. quote = compute_compensation(conn, view["order"]); amount = int(quote["amount_vnd"])
+    #    amount <= 0 -> denied
+    quote = compute_compensation(conn, view["order"])
+    budget.add_tool(tool_cost())
+    amount = int(quote["amount_vnd"])
+    if (amount <= 0):
+        trace.add("decision", {"status": "denied", "reason": quote["reason"]})
+        return done("denied", reason=quote["reason"])
+
+    # 5. outcome = issue_refund(conn, claim_id, amount, crash_at=crash_at)
+    #    ok -> resolved | conflict -> failed | else -> denied   (proposal = amount in all 3)
+    # CP3 (student): truyền crash_at vào durability.issue_refund.
+    # CP4 bắt injectedcrash để ghi trace, lỗi vẫn được reraise.
+    try:
+        outcome = issue_refund(conn, claim_id, amount, crash_at=crash_at)
+    except InjectedCrash:
+        trace.add("crash", {"at": crash_at})
+        trace.write()
+        raise
+    if not outcome["ok"]:
+        if outcome["conflict"]: 
+            trace.add("decision", {"status": "failed", "reason": outcome["reason"]})
+            return done("failed", proposal=amount, reason=outcome["reason"])
+        else: 
+            trace.add("decision", {"status": "denied", "reason": outcome["reason"]})
+            return done("denied", proposal=amount, reason=outcome["reason"])
+    else:
+        trace.add("decision", {"status": "resolved"})
+        return done("resolved", proposal=amount)
