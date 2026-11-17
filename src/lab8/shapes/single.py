@@ -51,9 +51,19 @@ def run_claim(
         conn.close()
 
 
-def _run(conn: sqlite3.Connection, claim_id: str, *, seed: int, crash_at: str | None) -> RunResult:
+def _run(
+    conn: sqlite3.Connection,
+    claim_id: str,
+    *,
+    seed: int,
+    crash_at: str | None,
+    shape: str = SHAPE,
+    react_model: bool = True,
+) -> RunResult:
+    """react_model=False tắt lời gọi model ở mỗi bước decide (dùng cho ablation R3,
+    xem src/bonus/single_fixed.py). Shape `single` chính thức luôn dùng True."""
     budget = Budget()
-    run_id = make_run_id(SHAPE, claim_id, seed)
+    run_id = make_run_id(shape, claim_id, seed)
     trace = Trace(run_id)
 
     # Hàm phụ: mọi nhánh return đều đi qua finish() để có trace + đọc ledger thật.
@@ -61,7 +71,7 @@ def _run(conn: sqlite3.Connection, claim_id: str, *, seed: int, crash_at: str | 
         trace.add("decision", {"status": status, "proposal_amount": int(proposal_amount), "reason": error_reason})
         return finish(
             conn,
-            shape=SHAPE,
+            shape=shape,
             claim_id=claim_id,
             seed=seed,
             status=status,
@@ -107,7 +117,8 @@ def _run(conn: sqlite3.Connection, claim_id: str, *, seed: int, crash_at: str | 
 
         # Mỗi lần "suy nghĩ" là một lời gọi model → đếm vào Budget qua MockLLM.
         # Prompt chỉ chứa trạng thái nội bộ, không chứa ticket hay dữ liệu cá nhân.
-        complete(budget, seed=seed, purpose="react", prompt=f"step={memory['step']};last={last_tool}")
+        if react_model:
+            complete(budget, seed=seed, purpose="react", prompt=f"step={memory['step']};last={last_tool}")
 
         # 1) Ghi nhớ kết quả của tool vừa chạy.
         if last_tool == "lookup_order":
